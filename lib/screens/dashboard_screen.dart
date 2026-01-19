@@ -21,7 +21,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   late TextEditingController _incomeController;
   double _monthlyIncome = 0.0;
   double _monthlyExpenses = 0.0;
-  Map<String, dynamic> _budgetStatus = {};
   int _selectedIndex = 0;
   bool _isLoading = true;
 
@@ -504,7 +503,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   final type = data['type'] as String;
                                   final date = (data['date'] as Timestamp)
                                       .toDate();
-                                  final notes = data['notes'] as String?;
 
                                   // Get icon and color based on category
                                   final categoryData = _getCategoryData(

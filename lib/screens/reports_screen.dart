@@ -12,13 +12,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   final ReportsService _reportsService = ReportsService();
   bool _isWeekly = true;
 
-  final List<Map<String, dynamic>> _categoryExpenses = [
-    {'category': 'Food', 'amount': 245.50, 'percentage': 35},
-    {'category': 'Travel', 'amount': 180.00, 'percentage': 25},
-    {'category': 'Bills', 'amount': 210.00, 'percentage': 30},
-    {'category': 'Entertainment', 'amount': 70.00, 'percentage': 10},
-  ];
-
   @override
   Widget build(BuildContext context) {
     DateTime now = DateTime.now();

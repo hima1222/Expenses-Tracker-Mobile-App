@@ -12,6 +12,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
   Map<String, dynamic>? _userProfile;
   bool _isLoading = false;
+  bool _isDarkMode = false;
+  String? _selectedPersonalInfo;
 
   @override
   void initState() {
@@ -153,16 +155,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildSettingItem(
-                            icon: Icons.person_outline,
-                            title: 'Personal Info',
-                            onTap: () {},
-                          ),
+                          _buildPersonalInfoDropdown(),
                           _buildDivider(),
                           _buildSettingItem(
                             icon: Icons.email_outlined,
                             title: 'Change Email',
-                            onTap: () {},
+                            onTap: () => _showChangeEmailDialog(),
                           ),
                         ],
                       ),
@@ -195,14 +193,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildSettingItem(
-                            icon: Icons.money_outlined,
-                            title: 'Monthly Budget',
-                            onTap: () {
-                              Navigator.pushNamed(context, '/budget');
-                            },
-                          ),
-                          _buildDivider(),
                           _buildSettingItem(
                             icon: Icons.notifications_outlined,
                             title: 'Notifications',
@@ -242,19 +232,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _buildSettingItem(
                             icon: Icons.settings_outlined,
                             title: 'Preferences',
-                            onTap: () {},
-                          ),
-                          _buildDivider(),
-                          _buildSettingItem(
-                            icon: Icons.help_outline,
-                            title: 'Help & Support',
-                            onTap: () {},
+                            onTap: () => _showPreferencesDialog(),
                           ),
                           _buildDivider(),
                           _buildSettingItem(
                             icon: Icons.info_outline,
                             title: 'About',
-                            onTap: () {},
+                            onTap: () => _showAboutDialog(),
                           ),
                         ],
                       ),
@@ -386,6 +370,212 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(height: 1, color: const Color(0xFFE5E7EB)),
+    );
+  }
+
+  Widget _buildPersonalInfoDropdown() {
+    List<String> personalInfoOptions = [
+      'Full Name: ${_userProfile?['name'] ?? 'Not set'}',
+      'Email: ${_userProfile?['email'] ?? 'Not set'}',
+      'Salary: ${_userProfile?['salary'] ?? 'Not set'}',
+    ];
+
+    return Material(
+      color: Colors.transparent,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.person_outline, color: Color(0xFF10B981), size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: const Text(
+                    'Personal Info',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Color(0xFFD1D5DB),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButton<String>(
+                value: _selectedPersonalInfo,
+                hint: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('Select to view details'),
+                ),
+                isExpanded: true,
+                underline: const SizedBox(),
+                items: personalInfoOptions.map((String option) {
+                  return DropdownMenuItem<String>(
+                    value: option,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(option),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedPersonalInfo = newValue;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showChangeEmailDialog() {
+    final emailController = TextEditingController(
+      text: _userProfile?['email'] ?? _authService.currentUser?.email ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Change Email'),
+          content: TextField(
+            controller: emailController,
+            decoration: InputDecoration(
+              hintText: 'Enter new email',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                // Update email logic here
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Email updated successfully')),
+                );
+                Navigator.pop(context);
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPreferencesDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Preferences'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Dark Mode'),
+                      Switch(
+                        value: _isDarkMode,
+                        onChanged: (bool value) {
+                          setDialogState(() {
+                            _isDarkMode = value;
+                          });
+                          setState(() {
+                            _isDarkMode = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Light Mode'),
+                      Switch(
+                        value: !_isDarkMode,
+                        onChanged: (bool value) {
+                          setDialogState(() {
+                            _isDarkMode = !value;
+                          });
+                          setState(() {
+                            _isDarkMode = !value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('About This App'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Expense Tracker is a simple and reliable app designed to help you take control of your personal finances. It allows you to easily record your daily income and expenses, so you always know where your money is going.\n\n'
+                  'With clear categories and organized records, the app helps you understand your spending habits over time. You can track different types of expenses, monitor your budget, and make informed decisions to improve how you manage your money.\n\n'
+                  'Whether you are saving for something important, trying to reduce unnecessary spending, or just want a better overview of your finances, Expense Tracker gives you a clear and convenient way to stay organized and financially aware.\n\n'
+                  'This app is built to be easy to use, so you can focus on managing your money without any confusion or extra effort.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF1F2937),
+                    height: 1.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
