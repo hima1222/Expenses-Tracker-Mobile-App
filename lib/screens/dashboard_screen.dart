@@ -9,6 +9,8 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
+  bool _isEditingIncome = false;
+  late TextEditingController _incomeController;
   
   final List<Map<String, dynamic>> _expenses = [
     {
@@ -36,6 +38,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'type': 'income',
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    double income = _expenses
+        .where((e) => e['type'] == 'income')
+        .fold(0, (sum, e) => sum + e['amount']);
+    _incomeController = TextEditingController(text: income.toStringAsFixed(2));
+  }
+
+  @override
+  void dispose() {
+    _incomeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,42 +147,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Monthly Balance',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6B7280),
-                                fontWeight: FontWeight.w500,
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Monthly Balance',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF6B7280),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() => _isEditingIncome = !_isEditingIncome);
+                                  },
+                                  child: Text(
+                                    _isEditingIncome ? 'Save' : 'Edit Income',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF10B981),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Row(
-                                      children: [
-                                        Icon(Icons.trending_up, size: 16, color: Color(0xFF10B981)),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          'Income',
-                                          style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '\$${income.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF10B981),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Row(
+                                        children: [
+                                          Icon(Icons.trending_up, size: 16, color: Color(0xFF10B981)),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Income',
+                                            style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 4),
+                                      if (!_isEditingIncome)
+                                        Text(
+                                          '\$${_incomeController.text}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF10B981),
+                                          ),
+                                        )
+                                      else
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: const Color(0xFF10B981)),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: TextField(
+                                            controller: _incomeController,
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            decoration: const InputDecoration(
+                                              prefix: Text('\$'),
+                                              border: InputBorder.none,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
+                                const SizedBox(width: 12),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -190,6 +245,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ],
                                 ),
+                                const SizedBox(width: 12),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -199,11 +255,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '\$${remaining.toStringAsFixed(2)}',
+                                      '\$${(double.tryParse(_incomeController.text) ?? 0 - totalExpenses).toStringAsFixed(2)}',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: remaining >= 0
+                                        color: (double.tryParse(_incomeController.text) ?? 0) >= totalExpenses
                                             ? const Color(0xFF3B82F6)
                                             : const Color(0xFFEF4444),
                                       ),
