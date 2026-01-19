@@ -94,20 +94,30 @@ class TransactionService {
     DateTime startOfMonth = DateTime(date.year, date.month, 1);
     DateTime endOfMonth = DateTime(date.year, date.month + 1, 0, 23, 59, 59);
 
-    QuerySnapshot snapshot = await _firestore
-        .collection('users')
-        .doc(_userId)
-        .collection('transactions')
-        .where('type', isEqualTo: 'income')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
-        .get();
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('transactions')
+          .where('type', isEqualTo: 'income')
+          .get();
 
-    double total = 0.0;
-    for (var doc in snapshot.docs) {
-      total += (doc.data() as Map<String, dynamic>)['amount'] as double;
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        DateTime transactionDate = (doc.data() as Map<String, dynamic>)['date']
+            .toDate();
+        if (transactionDate.isAfter(
+              startOfMonth.subtract(const Duration(days: 1)),
+            ) &&
+            transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
+          total += (doc.data() as Map<String, dynamic>)['amount'] as double;
+        }
+      }
+      return total;
+    } catch (e) {
+      print('Error getting monthly income: $e');
+      return 0.0;
     }
-    return total;
   }
 
   // Get total expenses for current month
@@ -115,20 +125,30 @@ class TransactionService {
     DateTime startOfMonth = DateTime(date.year, date.month, 1);
     DateTime endOfMonth = DateTime(date.year, date.month + 1, 0, 23, 59, 59);
 
-    QuerySnapshot snapshot = await _firestore
-        .collection('users')
-        .doc(_userId)
-        .collection('transactions')
-        .where('type', isEqualTo: 'expense')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
-        .get();
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('transactions')
+          .where('type', isEqualTo: 'expense')
+          .get();
 
-    double total = 0.0;
-    for (var doc in snapshot.docs) {
-      total += (doc.data() as Map<String, dynamic>)['amount'] as double;
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        DateTime transactionDate = (doc.data() as Map<String, dynamic>)['date']
+            .toDate();
+        if (transactionDate.isAfter(
+              startOfMonth.subtract(const Duration(days: 1)),
+            ) &&
+            transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
+          total += (doc.data() as Map<String, dynamic>)['amount'] as double;
+        }
+      }
+      return total;
+    } catch (e) {
+      print('Error getting monthly expenses: $e');
+      return 0.0;
     }
-    return total;
   }
 
   // Get expenses by category for reports
@@ -136,23 +156,33 @@ class TransactionService {
     DateTime startOfMonth = DateTime(date.year, date.month, 1);
     DateTime endOfMonth = DateTime(date.year, date.month + 1, 0, 23, 59, 59);
 
-    QuerySnapshot snapshot = await _firestore
-        .collection('users')
-        .doc(_userId)
-        .collection('transactions')
-        .where('type', isEqualTo: 'expense')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
-        .get();
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('users')
+          .doc(_userId)
+          .collection('transactions')
+          .where('type', isEqualTo: 'expense')
+          .get();
 
-    Map<String, double> categoryTotals = {};
+      Map<String, double> categoryTotals = {};
 
-    for (var doc in snapshot.docs) {
-      String category = doc['category'];
-      double amount = doc['amount'];
-      categoryTotals[category] = (categoryTotals[category] ?? 0) + amount;
+      for (var doc in snapshot.docs) {
+        DateTime transactionDate = (doc.data() as Map<String, dynamic>)['date']
+            .toDate();
+        if (transactionDate.isAfter(
+              startOfMonth.subtract(const Duration(days: 1)),
+            ) &&
+            transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
+          String category = doc['category'];
+          double amount = doc['amount'];
+          categoryTotals[category] = (categoryTotals[category] ?? 0) + amount;
+        }
+      }
+
+      return categoryTotals;
+    } catch (e) {
+      print('Error getting expenses by category: $e');
+      return {};
     }
-
-    return categoryTotals;
   }
 }
