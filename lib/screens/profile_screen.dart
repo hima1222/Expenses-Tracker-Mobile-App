@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/budget_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,6 +11,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
+  final BudgetService _budgetService = BudgetService();
   Map<String, dynamic>? _userProfile;
   bool _isLoading = false;
   bool _isDarkMode = false;
@@ -197,6 +199,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             icon: Icons.notifications_outlined,
                             title: 'Notifications',
                             onTap: () {},
+                          ),
+                          _buildDivider(),
+                          _buildSettingItem(
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'Monthly Budget',
+                            onTap: () => _showMonthlyBudgetDialog(),
                           ),
                         ],
                       ),
@@ -388,15 +396,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.person_outline, color: Color(0xFF10B981), size: 20),
+                const Icon(
+                  Icons.person_outline,
+                  color: Color(0xFF10B981),
+                  size: 20,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: const Text(
                     'Personal Info',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF1F2937),
-                    ),
+                    style: TextStyle(fontSize: 14, color: Color(0xFF1F2937)),
                   ),
                 ),
                 const Icon(
@@ -577,5 +586,310 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  void _showMonthlyBudgetDialog() async {
+    setState(() => _isLoading = true);
+    try {
+      DateTime now = DateTime.now();
+      Map<String, dynamic> budgetStatus = await _budgetService.getBudgetStatus(
+        now,
+      );
+
+      double budget = budgetStatus['budget'];
+      double spent = budgetStatus['spent'];
+      double remaining = budgetStatus['remaining'];
+      double percentage = budgetStatus['percentage'];
+      String status = budgetStatus['status'];
+
+      Color budgetColor = _getBudgetColor(percentage);
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Monthly Budget Analysis'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Budget Overview
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Budget Overview',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Monthly Budget:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            Text(
+                              '\$${budget.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1F2937),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Spent:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            Text(
+                              '\$${spent.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFFEF4444),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Remaining:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            Text(
+                              '\$${remaining.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: remaining >= 0
+                                    ? Color(0xFF10B981)
+                                    : Color(0xFFEF4444),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Progress Bar
+                  Text(
+                    'Spending Progress',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${percentage.toStringAsFixed(1)}% Used',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: budgetColor,
+                              ),
+                            ),
+                            Text(
+                              status,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: budgetColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: percentage / 100,
+                            minHeight: 12,
+                            backgroundColor: Color(0xFFE5E7EB),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              budgetColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Future Spending Suggestions
+                  Text(
+                    'Future Spending Suggestions',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._getSpendingSuggestions(percentage, remaining, budget).map(
+                    (suggestion) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline,
+                              size: 16,
+                              color: Color(0xFF10B981),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                suggestion,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF6B7280),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ).toList(),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/budgets');
+                },
+                child: const Text('Manage Budget'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading budget data: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Color _getBudgetColor(double percentage) {
+    if (percentage >= 100) return const Color(0xFFEF4444);
+    if (percentage >= 80) return const Color(0xFFFACC15);
+    return const Color(0xFF10B981);
+  }
+
+  List<String> _getSpendingSuggestions(
+    double percentage,
+    double remaining,
+    double budget,
+  ) {
+    List<String> suggestions = [];
+
+    if (percentage >= 100) {
+      suggestions.add(
+        'You\'ve exceeded your budget. Consider reviewing your expenses and adjusting your spending habits.',
+      );
+      suggestions.add(
+        'Look for areas where you can cut back on non-essential expenses.',
+      );
+      suggestions.add(
+        'Consider increasing your monthly budget or finding additional income sources.',
+      );
+    } else if (percentage >= 80) {
+      suggestions.add(
+        'You\'re approaching your budget limit. Monitor your remaining spending carefully.',
+      );
+      suggestions.add(
+        'Prioritize essential expenses and delay non-urgent purchases.',
+      );
+      suggestions.add(
+        'With \$${remaining.toStringAsFixed(2)} remaining, plan your spending for the rest of the month.',
+      );
+    } else if (percentage >= 50) {
+      suggestions.add(
+        'You\'re halfway through your budget. Keep tracking your expenses regularly.',
+      );
+      suggestions.add(
+        'Consider saving some of your remaining \$${remaining.toStringAsFixed(2)} for unexpected expenses.',
+      );
+      suggestions.add(
+        'Review your spending categories to identify areas for potential savings.',
+      );
+    } else {
+      suggestions.add(
+        'Great job staying within your budget! You have \$${remaining.toStringAsFixed(2)} remaining.',
+      );
+      suggestions.add(
+        'Consider allocating some savings from this month\'s surplus.',
+      );
+      suggestions.add(
+        'Continue monitoring your spending patterns to maintain financial health.',
+      );
+    }
+
+    // General suggestions
+    suggestions.add(
+      'Track daily expenses to avoid overspending at month\'s end.',
+    );
+    suggestions.add(
+      'Set spending limits for different categories to better control your budget.',
+    );
+
+    return suggestions;
   }
 }

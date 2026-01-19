@@ -23,6 +23,8 @@ class _DashboardScreenState extends State<DashboardScreen>
   double _monthlyExpenses = 0.0;
   int _selectedIndex = 0;
   bool _isLoading = true;
+  Map<String, dynamic> _budgetStatus = {};
+  String? _userName;
 
   @override
   void initState() {
@@ -39,10 +41,16 @@ class _DashboardScreenState extends State<DashboardScreen>
       double expenses = await _transactionService.getMonthlyExpenses(now);
       Map<String, dynamic> budget = await _budgetService.getBudgetStatus(now);
 
+      // Load user profile to get name
+      Map<String, dynamic>? userProfile = await _authService.getUserProfile(
+        _authService.currentUser!.uid,
+      );
+
       setState(() {
         _monthlyIncome = income;
         _monthlyExpenses = expenses;
         _budgetStatus = budget;
+        _userName = userProfile?['name'] ?? 'User';
         _incomeController.text = income.toStringAsFixed(2);
         _isLoading = false;
       });
@@ -50,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       print('Error loading initial data: $e');
       setState(() {
         _incomeController.text = '0.00';
+        _userName = 'User';
         _isLoading = false;
       });
     }
@@ -82,21 +91,27 @@ class _DashboardScreenState extends State<DashboardScreen>
       DateTime startOfMonth = DateTime(now.year, now.month, 1);
       DateTime endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
-      QuerySnapshot existingIncome = await FirebaseFirestore.instance
+      // Alternative approach: Query all income transactions and filter in code
+      QuerySnapshot allIncomeSnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(_authService.currentUser!.uid)
           .collection('transactions')
           .where('type', isEqualTo: 'income')
-          .where(
-            'date',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth),
-          )
-          .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
           .get();
 
-      if (existingIncome.docs.isNotEmpty) {
+      // Filter by date range in code
+      List<QueryDocumentSnapshot> existingIncome = allIncomeSnapshot.docs.where(
+        (doc) {
+          Timestamp docDate = doc['date'] as Timestamp;
+          DateTime date = docDate.toDate();
+          return date.isAfter(startOfMonth.subtract(const Duration(days: 1))) &&
+              date.isBefore(endOfMonth.add(const Duration(days: 1)));
+        },
+      ).toList();
+
+      if (existingIncome.isNotEmpty) {
         // Update existing income transaction
-        String docId = existingIncome.docs.first.id;
+        String docId = existingIncome.first.id;
         await FirebaseFirestore.instance
             .collection('users')
             .doc(_authService.currentUser!.uid)
@@ -205,9 +220,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    const Text(
-                                      'John',
-                                      style: TextStyle(
+                                    Text(
+                                      _userName ?? 'User',
+                                      style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,

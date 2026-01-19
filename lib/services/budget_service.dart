@@ -41,13 +41,19 @@ class BudgetService {
         .doc(_userId)
         .collection('transactions')
         .where('type', isEqualTo: 'expense')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
         .get();
 
     double total = 0.0;
     for (var doc in snapshot.docs) {
-      total += (doc.data() as Map<String, dynamic>)['amount'] as double;
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      Timestamp timestamp = data['date'] as Timestamp;
+      DateTime transactionDate = timestamp.toDate();
+      if (transactionDate.isAfter(
+            startOfMonth.subtract(const Duration(days: 1)),
+          ) &&
+          transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
+        total += data['amount'] as double;
+      }
     }
     return total;
   }
