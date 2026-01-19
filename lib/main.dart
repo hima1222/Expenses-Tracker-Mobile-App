@@ -14,7 +14,7 @@ class ExpenseTrackerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Expense Tracker',
       theme: ThemeData(
-        colorSchemeSeed: Colors.green,
+        colorSchemeSeed: Colors.green,// Changed to green for a fresh look
         useMaterial3: true,
       ),
       home: const DashboardScreen(),
