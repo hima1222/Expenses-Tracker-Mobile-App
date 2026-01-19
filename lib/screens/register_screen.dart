@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,7 +13,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final AuthService _authService = AuthService();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,7 +26,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  Future<void> _handleRegister() async {
     if (_nameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
@@ -35,29 +38,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match!')));
       return;
     }
 
-    Navigator.pushReplacementNamed(context, '/dashboard');
+    setState(() => _isLoading = true);
+
+    try {
+      await _authService.signUp(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-        ),
+        decoration: const BoxDecoration(color: Colors.white),
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                
+
                 // Icon Circle
                 Container(
                   width: 80,
@@ -66,10 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF4ADE80),
-                        Color(0xFF3B82F6),
-                      ],
+                      colors: [Color(0xFF4ADE80), Color(0xFF3B82F6)],
                     ),
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -82,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Create Account Text
                 const Text(
                   'Create Account',
@@ -95,13 +108,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   'Sign up to start tracking',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                  ),
+                  style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // Full Name Input
                 TextField(
                   controller: _nameController,
@@ -119,12 +129,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF10B981),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Email Input
                 TextField(
                   controller: _emailController,
@@ -142,12 +155,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF10B981),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Password Input
                 TextField(
                   controller: _passwordController,
@@ -158,7 +174,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: const Color(0xFF9CA3AF),
                       ),
                       onPressed: () {
@@ -175,12 +193,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF10B981),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Confirm Password Input
                 TextField(
                   controller: _confirmPasswordController,
@@ -199,12 +220,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF10B981),
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 // Register Button
                 SizedBox(
                   width: double.infinity,
@@ -213,10 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       gradient: const LinearGradient(
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
-                        colors: [
-                          Color(0xFF10B981),
-                          Color(0xFF3B82F6),
-                        ],
+                        colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
                       ),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
@@ -228,7 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: _handleRegister,
+                      onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -237,14 +258,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Register',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Register',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ),

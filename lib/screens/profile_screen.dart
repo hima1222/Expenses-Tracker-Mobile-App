@@ -1,7 +1,50 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthService _authService = AuthService();
+  Map<String, dynamic>? _userProfile;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final profile = await _authService.getUserProfile(
+        _authService.currentUser!.uid,
+      );
+      setState(() {
+        _userProfile = profile;
+      });
+    } catch (e) {
+      print('Error loading profile: $e');
+    }
+  }
+
+  Future<void> _logout() async {
+    setState(() => _isLoading = true);
+    try {
+      await _authService.signOut();
+      Navigator.pushReplacementNamed(context, '/login');
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,18 +104,20 @@ class ProfileScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'John Doe',
-                            style: TextStyle(
+                          Text(
+                            _userProfile?['name'] ?? 'User',
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF1F2937),
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'john@example.com',
-                            style: TextStyle(
+                          Text(
+                            _userProfile?['email'] ??
+                                _authService.currentUser?.email ??
+                                '',
+                            style: const TextStyle(
                               fontSize: 13,
                               color: Color(0xFF9CA3AF),
                             ),
@@ -223,10 +268,7 @@ class ProfileScreen extends StatelessWidget {
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFFEF4444),
-                            Color(0xFFF97316),
-                          ],
+                          colors: [Color(0xFFEF4444), Color(0xFFF97316)],
                         ),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
@@ -240,20 +282,30 @@ class ProfileScreen extends StatelessWidget {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () {
-                            Navigator.pushReplacementNamed(context, '/login');
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
+                          onTap: _isLoading ? null : _logout,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Center(
-                              child: Text(
-                                'Logout',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Logout',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
@@ -318,7 +370,11 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFFD1D5DB)),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Color(0xFFD1D5DB),
+              ),
             ],
           ),
         ),
@@ -329,10 +385,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        height: 1,
-        color: const Color(0xFFE5E7EB),
-      ),
+      child: Container(height: 1, color: const Color(0xFFE5E7EB)),
     );
   }
 }

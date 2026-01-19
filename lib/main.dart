@@ -7,8 +7,11 @@ import 'screens/add_transaction_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/budgets_screen.dart';
 import 'screens/profile_screen.dart';
+import 'services/firebase_config.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseConfig.initialize();
   runApp(const MyApp());
 }
 

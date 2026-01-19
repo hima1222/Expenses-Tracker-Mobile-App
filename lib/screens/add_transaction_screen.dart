@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/transaction_service.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -8,13 +9,21 @@ class AddExpenseScreen extends StatefulWidget {
 }
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
+  final TransactionService _transactionService = TransactionService();
   String _selectedType = 'expense';
   String _selectedCategory = 'Food';
   TextEditingController amountController = TextEditingController();
   TextEditingController notesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  bool _isLoading = false;
 
-  final List<String> _categories = ['Food', 'Travel', 'Bills', 'Entertainment', 'Other'];
+  final List<String> _categories = [
+    'Food',
+    'Travel',
+    'Bills',
+    'Entertainment',
+    'Other',
+  ];
 
   final Map<String, IconData> _categoryIcons = {
     'Food': Icons.restaurant,
@@ -29,6 +38,46 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     amountController.dispose();
     notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveTransaction() async {
+    if (amountController.text.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter an amount')));
+      return;
+    }
+
+    double? amount = double.tryParse(amountController.text);
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _transactionService.addTransaction(
+        type: _selectedType,
+        category: _selectedCategory,
+        amount: amount,
+        date: _selectedDate,
+        notes: notesController.text.trim(),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transaction saved successfully!')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving transaction: $e')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -77,9 +126,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedType = 'expense'),
+                              onTap: () =>
+                                  setState(() => _selectedType = 'expense'),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: _selectedType == 'expense'
                                       ? const LinearGradient(
@@ -92,13 +144,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                         )
                                       : null,
                                   borderRadius: BorderRadius.circular(8),
-                                  color: _selectedType == 'expense' ? null : Colors.transparent,
+                                  color: _selectedType == 'expense'
+                                      ? null
+                                      : Colors.transparent,
                                 ),
                                 child: Center(
                                   child: Text(
                                     'Expense',
                                     style: TextStyle(
-                                      color: _selectedType == 'expense' ? Colors.white : const Color(0xFF9CA3AF),
+                                      color: _selectedType == 'expense'
+                                          ? Colors.white
+                                          : const Color(0xFF9CA3AF),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -109,9 +165,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => setState(() => _selectedType = 'income'),
+                              onTap: () =>
+                                  setState(() => _selectedType = 'income'),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   gradient: _selectedType == 'income'
                                       ? const LinearGradient(
@@ -124,13 +183,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                         )
                                       : null,
                                   borderRadius: BorderRadius.circular(8),
-                                  color: _selectedType == 'income' ? null : Colors.transparent,
+                                  color: _selectedType == 'income'
+                                      ? null
+                                      : Colors.transparent,
                                 ),
                                 child: Center(
                                   child: Text(
                                     'Income',
                                     style: TextStyle(
-                                      color: _selectedType == 'income' ? Colors.white : const Color(0xFF9CA3AF),
+                                      color: _selectedType == 'income'
+                                          ? Colors.white
+                                          : const Color(0xFF9CA3AF),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -167,7 +230,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       ),
                       child: TextField(
                         controller: amountController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Enter amount',
                           hintStyle: const TextStyle(color: Color(0xFFD1D5DB)),
@@ -182,9 +247,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               ),
                             ),
                           ),
-                          prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                          prefixIconConstraints: const BoxConstraints(
+                            minWidth: 0,
+                            minHeight: 0,
+                          ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -216,23 +287,29 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       child: GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 5,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 5,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
                         itemCount: _categories.length,
                         itemBuilder: (context, index) {
                           final category = _categories[index];
                           final isSelected = _selectedCategory == category;
 
                           return GestureDetector(
-                            onTap: () => setState(() => _selectedCategory = category),
+                            onTap: () =>
+                                setState(() => _selectedCategory = category),
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF10B981).withOpacity(0.1) : Colors.white,
+                                color: isSelected
+                                    ? const Color(0xFF10B981).withOpacity(0.1)
+                                    : Colors.white,
                                 border: Border.all(
-                                  color: isSelected ? const Color(0xFF10B981) : const Color(0xFFE5E7EB),
+                                  color: isSelected
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFFE5E7EB),
                                   width: 2,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
@@ -242,7 +319,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                 children: [
                                   Icon(
                                     _categoryIcons[category],
-                                    color: isSelected ? const Color(0xFF10B981) : const Color(0xFF9CA3AF),
+                                    color: isSelected
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFF9CA3AF),
                                     size: 24,
                                   ),
                                   const SizedBox(height: 4),
@@ -252,7 +331,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w600,
-                                      color: isSelected ? const Color(0xFF10B981) : const Color(0xFF6B7280),
+                                      color: isSelected
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFF6B7280),
                                     ),
                                   ),
                                 ],
@@ -301,10 +382,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             }
                           },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
                             child: Row(
                               children: [
-                                const Icon(Icons.calendar_today, color: Color(0xFF10B981)),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  color: Color(0xFF10B981),
+                                ),
                                 const SizedBox(width: 12),
                                 Text(
                                   '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
@@ -363,10 +450,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [
-                            Color(0xFF10B981),
-                            Color(0xFF2DD4BF),
-                          ],
+                          colors: [Color(0xFF10B981), Color(0xFF2DD4BF)],
                         ),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
@@ -380,29 +464,30 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () {
-                            if (amountController.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please enter an amount')),
-                              );
-                              return;
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Transaction saved successfully!')),
-                            );
-                            Navigator.pop(context);
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
+                          onTap: _isLoading ? null : _saveTransaction,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             child: Center(
-                              child: Text(
-                                'Save Transaction',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Save Transaction',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),

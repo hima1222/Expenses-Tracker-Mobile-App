@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -7,7 +8,9 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  final AuthService _authService = AuthService();
   late AnimationController _fadeController;
   late AnimationController _bounceController1;
   late AnimationController _bounceController2;
@@ -18,16 +21,18 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    _checkAuthState();
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _bounceController1 = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     )..repeat(reverse: true);
-    
+
     _bounceController2 = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -48,6 +53,15 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     Future.delayed(const Duration(milliseconds: 400), () {
       _bounceController2.forward();
     });
+  }
+
+  Future<void> _checkAuthState() async {
+    // Wait for Firebase to initialize
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (_authService.currentUser != null) {
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    }
   }
 
   @override
@@ -106,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Decorative Coins
                     Stack(
                       children: [
@@ -163,7 +177,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ],
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // App Name
                     const Text(
                       'Smart Expense Tracker',
@@ -176,7 +190,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
+
                     // Tagline
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
@@ -190,7 +204,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       ),
                     ),
                     const SizedBox(height: 48),
-                    
+
                     // Action Buttons
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 280),
@@ -206,7 +220,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF059669),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(24),
                                 ),
@@ -222,7 +238,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                             ),
                           ),
                           const SizedBox(height: 16),
-                          
+
                           // Register Button
                           SizedBox(
                             width: double.infinity,
@@ -232,8 +248,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                               },
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white, width: 2),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                side: const BorderSide(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(24),
                                 ),

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
+import '../services/transaction_service.dart';
+import '../services/budget_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -8,44 +12,44 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _selectedIndex = 0;
+  final AuthService _authService = AuthService();
+  final TransactionService _transactionService = TransactionService();
+  final BudgetService _budgetService = BudgetService();
+
   bool _isEditingIncome = false;
   late TextEditingController _incomeController;
-  
-  final List<Map<String, dynamic>> _expenses = [
-    {
-      'category': 'Food',
-      'amount': 45.50,
-      'date': '2024-01-15',
-      'icon': Icons.restaurant,
-      'color': Colors.orange,
-      'type': 'expense',
-    },
-    {
-      'category': 'Travel',
-      'amount': 120.00,
-      'date': '2024-01-14',
-      'icon': Icons.directions_car,
-      'color': Colors.blue,
-      'type': 'expense',
-    },
-    {
-      'category': 'Salary',
-      'amount': 3000.00,
-      'date': '2024-01-10',
-      'icon': Icons.attach_money,
-      'color': Colors.green,
-      'type': 'income',
-    },
-  ];
+  double _monthlyIncome = 0.0;
+  double _monthlyExpenses = 0.0;
+  Map<String, dynamic> _budgetStatus = {};
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    double income = _expenses
-        .where((e) => e['type'] == 'income')
-        .fold(0, (sum, e) => sum + e['amount']);
-    _incomeController = TextEditingController(text: income.toStringAsFixed(2));
+    _incomeController = TextEditingController(text: '0.00');
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      DateTime now = DateTime.now();
+      double income = await _transactionService.getMonthlyIncome(now);
+      double expenses = await _transactionService.getMonthlyExpenses(now);
+      Map<String, dynamic> budget = await _budgetService.getBudgetStatus(now);
+
+      setState(() {
+        _monthlyIncome = income;
+        _monthlyExpenses = expenses;
+        _budgetStatus = budget;
+        _incomeController.text = income.toStringAsFixed(2);
+      });
+    } catch (e) {
+      // Handle error
+      print('Error loading data: $e');
+      setState(() {
+        _incomeController.text = '0.00';
+      });
+    }
   }
 
   @override
@@ -54,17 +58,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
+  Map<String, dynamic> _getCategoryData(String category) {
+    final categoryMap = {
+      'Food': {'icon': Icons.restaurant, 'color': Colors.orange},
+      'Travel': {'icon': Icons.directions_car, 'color': Colors.blue},
+      'Bills': {'icon': Icons.receipt, 'color': Colors.red},
+      'Entertainment': {'icon': Icons.movie, 'color': Colors.purple},
+      'Salary': {'icon': Icons.attach_money, 'color': Colors.green},
+      'Other': {'icon': Icons.category, 'color': Colors.grey},
+    };
+
+    return categoryMap[category] ?? categoryMap['Other']!;
+  }
+
   @override
   Widget build(BuildContext context) {
-    double income = _expenses
-        .where((e) => e['type'] == 'income')
-        .fold(0, (sum, e) => sum + e['amount']);
-    
-    double totalExpenses = _expenses
-        .where((e) => e['type'] == 'expense')
-        .fold(0, (sum, e) => sum + e['amount']);
-    
-    double remaining = income - totalExpenses;
+    double remaining = _monthlyIncome - _monthlyExpenses;
 
     return Scaffold(
       body: CustomScrollView(
@@ -79,10 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF10B981),
-                      Color(0xFF3B82F6),
-                    ],
+                    colors: [Color(0xFF10B981), Color(0xFF3B82F6)],
                   ),
                 ),
                 child: Padding(
@@ -160,7 +166,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 GestureDetector(
                                   onTap: () {
-                                    setState(() => _isEditingIncome = !_isEditingIncome);
+                                    setState(
+                                      () =>
+                                          _isEditingIncome = !_isEditingIncome,
+                                    );
                                   },
                                   child: Text(
                                     _isEditingIncome ? 'Save' : 'Edit Income',
@@ -179,15 +188,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Row(
                                         children: [
-                                          Icon(Icons.trending_up, size: 16, color: Color(0xFF10B981)),
+                                          Icon(
+                                            Icons.trending_up,
+                                            size: 16,
+                                            color: Color(0xFF10B981),
+                                          ),
                                           SizedBox(width: 4),
                                           Text(
                                             'Income',
-                                            style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF6B7280),
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -204,13 +221,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       else
                                         Container(
                                           decoration: BoxDecoration(
-                                            border: Border.all(color: const Color(0xFF10B981)),
-                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: const Color(0xFF10B981),
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
                                           child: TextField(
                                             controller: _incomeController,
-                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            keyboardType:
+                                                const TextInputType.numberWithOptions(
+                                                  decimal: true,
+                                                ),
                                             decoration: const InputDecoration(
                                               prefix: Text('\$'),
                                               border: InputBorder.none,
@@ -226,17 +252,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   children: [
                                     const Row(
                                       children: [
-                                        Icon(Icons.trending_down, size: 16, color: Color(0xFFEF4444)),
+                                        Icon(
+                                          Icons.trending_down,
+                                          size: 16,
+                                          color: Color(0xFFEF4444),
+                                        ),
                                         SizedBox(width: 4),
                                         Text(
                                           'Expenses',
-                                          style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF6B7280),
+                                          ),
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '\$${totalExpenses.toStringAsFixed(2)}',
+                                      '\$${_monthlyExpenses.toStringAsFixed(2)}',
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -251,15 +284,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   children: [
                                     const Text(
                                       'Remaining',
-                                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF6B7280),
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '\$${(double.tryParse(_incomeController.text) ?? 0 - totalExpenses).toStringAsFixed(2)}',
+                                      '\$${(double.tryParse(_incomeController.text) ?? 0 - _monthlyExpenses).toStringAsFixed(2)}',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: (double.tryParse(_incomeController.text) ?? 0) >= totalExpenses
+                                        color:
+                                            (double.tryParse(
+                                                      _incomeController.text,
+                                                    ) ??
+                                                    0) >=
+                                                _monthlyExpenses
                                             ? const Color(0xFF3B82F6)
                                             : const Color(0xFFEF4444),
                                       ),
@@ -277,7 +318,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-          
+
           SliverToBoxAdapter(
             child: Container(
               color: const Color(0xFFF9FAFB),
@@ -295,74 +336,134 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ..._expenses.map((expense) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: (expense['color'] as Color).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  expense['icon'],
-                                  color: expense['color'],
-                                  size: 20,
+                    StreamBuilder<QuerySnapshot>(
+                      stream: _transactionService.getTransactions(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const Text('Error loading transactions');
+                        }
+
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        final transactions = snapshot.data?.docs ?? [];
+
+                        if (transactions.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(32),
+                            child: const Column(
+                              children: [
+                                Icon(
+                                  Icons.receipt_long,
+                                  size: 48,
+                                  color: Colors.grey,
                                 ),
-                              ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'No transactions yet',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                                Text(
+                                  'Add your first transaction',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          );
+                        }
+
+                        return Column(
+                          children: transactions.take(5).map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final category = data['category'] as String;
+                            final amount = data['amount'] as double;
+                            final type = data['type'] as String;
+                            final date = (data['date'] as Timestamp).toDate();
+                            final notes = data['notes'] as String?;
+
+                            // Get icon and color based on category
+                            final categoryData = _getCategoryData(category);
+
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: Row(
                                 children: [
-                                  Text(
-                                    expense['category'],
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1F2937),
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: categoryData['color'].withOpacity(
+                                        0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        categoryData['icon'],
+                                        color: categoryData['color'],
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          category,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF1F2937),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${date.day}/${date.month}/${date.year}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF9CA3AF),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                   Text(
-                                    expense['date'],
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF9CA3AF),
+                                    '${type == 'income' ? '+' : '-'}\$${amount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: type == 'income'
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFEF4444),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            Text(
-                              '${expense['type'] == 'income' ? '+' : '-'}\$${expense['amount'].toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: expense['type'] == 'income'
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFFEF4444),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -382,10 +483,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
           ],
         ),
         child: BottomNavigationBar(
@@ -406,19 +504,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
           elevation: 0,
           items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home, color: _selectedIndex == 0 ? const Color(0xFF10B981) : const Color(0xFF9CA3AF)),
+              icon: Icon(
+                Icons.home,
+                color: _selectedIndex == 0
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF9CA3AF),
+              ),
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle, color: _selectedIndex == 1 ? const Color(0xFF10B981) : const Color(0xFF9CA3AF)),
+              icon: Icon(
+                Icons.add_circle,
+                color: _selectedIndex == 1
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF9CA3AF),
+              ),
               label: 'Add',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.pie_chart, color: _selectedIndex == 2 ? const Color(0xFF10B981) : const Color(0xFF9CA3AF)),
+              icon: Icon(
+                Icons.pie_chart,
+                color: _selectedIndex == 2
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF9CA3AF),
+              ),
               label: 'Reports',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person, color: _selectedIndex == 3 ? const Color(0xFF10B981) : const Color(0xFF9CA3AF)),
+              icon: Icon(
+                Icons.person,
+                color: _selectedIndex == 3
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF9CA3AF),
+              ),
               label: 'Profile',
             ),
           ],
