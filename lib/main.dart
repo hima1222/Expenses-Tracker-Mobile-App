@@ -1,23 +1,40 @@
 import 'package:flutter/material.dart';
+import 'screens/splash_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/add_transaction_screen.dart';
+import 'screens/reports_screen.dart';
+import 'screens/budgets_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() {
-  runApp(const ExpenseTrackerApp());
+  runApp(const MyApp());
 }
 
-class ExpenseTrackerApp extends StatelessWidget {
-  const ExpenseTrackerApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Expense Tracker',
+      title: 'Smart Expense Tracker',
       theme: ThemeData(
-        colorSchemeSeed: Colors.green,// Changed to green for a fresh look
         useMaterial3: true,
+        primarySwatch: Colors.green,
+        fontFamily: 'Roboto',
       ),
-      home: const DashboardScreen(),
+      home: const SplashScreen(),
+      routes: {
+        '/splash': (context) => const SplashScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/dashboard': (context) => const DashboardScreen(),
+        '/add-expense': (context) => const AddExpenseScreen(),
+        '/reports': (context) => const ReportsScreen(),
+        '/budget': (context) => const BudgetScreen(),
+        '/profile': (context) => const ProfileScreen(),
+      },
     );
   }
 }
