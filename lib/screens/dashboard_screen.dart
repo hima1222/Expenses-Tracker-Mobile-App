@@ -514,7 +514,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   final data =
                                       doc.data() as Map<String, dynamic>;
                                   final category = data['category'] as String;
-                                  final amount = data['amount'] as double;
+                                  final amount = (data['amount'] as num)
+                                      .toDouble();
                                   final type = data['type'] as String;
                                   final date = (data['date'] as Timestamp)
                                       .toDate();

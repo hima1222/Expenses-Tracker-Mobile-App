@@ -52,7 +52,7 @@ class BudgetService {
             startOfMonth.subtract(const Duration(days: 1)),
           ) &&
           transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
-        total += data['amount'] as double;
+        total += (data['amount'] as num).toDouble();
       }
     }
     return total;

@@ -110,7 +110,8 @@ class TransactionService {
               startOfMonth.subtract(const Duration(days: 1)),
             ) &&
             transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
-          total += (doc.data() as Map<String, dynamic>)['amount'] as double;
+          total += ((doc.data() as Map<String, dynamic>)['amount'] as num)
+              .toDouble();
         }
       }
       return total;
@@ -141,7 +142,8 @@ class TransactionService {
               startOfMonth.subtract(const Duration(days: 1)),
             ) &&
             transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
-          total += (doc.data() as Map<String, dynamic>)['amount'] as double;
+          total += ((doc.data() as Map<String, dynamic>)['amount'] as num)
+              .toDouble();
         }
       }
       return total;
@@ -174,7 +176,7 @@ class TransactionService {
             ) &&
             transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
           String category = doc['category'];
-          double amount = doc['amount'];
+          double amount = (doc['amount'] as num).toDouble();
           categoryTotals[category] = (categoryTotals[category] ?? 0) + amount;
         }
       }

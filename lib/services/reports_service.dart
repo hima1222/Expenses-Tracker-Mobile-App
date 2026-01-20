@@ -31,7 +31,7 @@ class ReportsService {
             ) &&
             transactionDate.isBefore(endDate.add(const Duration(days: 1)))) {
           String category = doc['category'];
-          double amount = doc['amount'];
+          double amount = (doc['amount'] as num).toDouble();
           categoryTotals[category] = (categoryTotals[category] ?? 0) + amount;
           totalExpenses += amount;
         }
@@ -82,7 +82,7 @@ class ReportsService {
                 weekStart.subtract(const Duration(days: 1)),
               ) &&
               transactionDate.isBefore(weekEnd.add(const Duration(days: 1)))) {
-            total += (doc['amount'] as double);
+            total += (doc['amount'] as num).toDouble();
           }
         }
 
@@ -135,7 +135,7 @@ class ReportsService {
               transactionDate.isBefore(
                 endOfMonth.add(const Duration(days: 1)),
               )) {
-            total += (doc['amount'] as double);
+            total += (doc['amount'] as num).toDouble();
           }
         }
 
@@ -181,7 +181,7 @@ class ReportsService {
               startOfMonth.subtract(const Duration(days: 1)),
             ) &&
             transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
-          totalIncome += (doc['amount'] as double);
+          totalIncome += (doc['amount'] as num).toDouble();
         }
       }
 
@@ -200,7 +200,7 @@ class ReportsService {
               startOfMonth.subtract(const Duration(days: 1)),
             ) &&
             transactionDate.isBefore(endOfMonth.add(const Duration(days: 1)))) {
-          totalExpenses += (doc['amount'] as double);
+          totalExpenses += (doc['amount'] as num).toDouble();
         }
       }
 
